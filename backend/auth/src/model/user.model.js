@@ -4,7 +4,7 @@ const userinfo = new mongoose.Schema({
     username: {
         type: String,
         required: true,
-        trim: true
+        unique: true,
     },
 
     email: {
@@ -25,13 +25,14 @@ const userinfo = new mongoose.Schema({
         enum: ['user', 'admin', 'seller'],
         default: 'user'
     },
-    address: {
-        type: String
-    },
-
-    timestamps: true
-
-})
+    address:[{
+        country: String,
+        state: String,
+        city: String,
+        postalCode: String,
+        street: String
+    }] 
+}, { timestamps: true })
 
 const User = mongoose.model('User', userinfo)
 

@@ -87,7 +87,8 @@ AI Stack:
 ---
 
 ## 📁 Project Structure
-``meenovex/
+```js
+meenovex/
 │
 ├── services/
 │ ├── auth-service/
@@ -102,7 +103,7 @@ AI Stack:
 ├── shared/
 ├── gateway/ (optional)
 └── frontend/ (coming soon)
-``
+```
 ---
 
 ## 🚧 Status

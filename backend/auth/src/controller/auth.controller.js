@@ -1,56 +1,36 @@
 const User = require('../model/user.model')
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser');
 
 const registerUser = async (req, res) => {
     try {
-        const { username, email, password, role } = req.body
-
-        // Validation
-        if (!username || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Username, email, and password are required'
-            })
-        }
-
-        // Check if user already exists
-        const existingUser = await User.findOne({
-            $or: [{ email }, { username }]
-        })
-
+        const { username, email, password, role } = req.body;
+        const existingUser = await User.findOne({$or: [{ email }, { username }]});
+        
         if (existingUser) {
-            return res.status(409).json({
-                success: false,
-                message: 'User with this email or username already exists'
-            })
+            return res.status(409).json({ message: 'User with this email or username already exists' });
         }
 
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+       
         // Create new user
-        const newUser = new User({
+        const newUser = await User.create({
             username,
             email,
-            password, // In production, hash the password
+            password: hashedPassword,
             role: role || 'user'
-        })
+        });
 
-        const savedUser = await newUser.save()
+      const cookie = jwt.sign({ _id:newUser._id, email, username }, process.env.JWT_SECRET);
 
-        res.status(201).json({
-            success: true,
-            message: 'User registered successfully',
-            user: {
-                id: savedUser._id,
-                username: savedUser.username,
-                email: savedUser.email,
-                role: savedUser.role
-            }
-        })
+        res.cookie('token', cookie, { httpOnly: true });
+
+        res.status(201).json({ message: 'User registered successfully', user: newUser });
     } catch (error) {
-        console.error('Register error:', error)
-        res.status(500).json({
-            success: false,
-            message: 'Error registering user',
-            error: error.message
-        })
+        console.error('Error in registerUser:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 }
 

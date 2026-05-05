@@ -6,6 +6,16 @@ const userinfo = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    fullName:{
+        firstname: {
+            type: String,
+            required: true
+        },
+        lastname: {
+            type: String,
+            required: true
+        }
+    },
 
     email: {
         type: String,
@@ -17,7 +27,8 @@ const userinfo = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-        minlength: 6
+        minlength: 6,
+        select: false
     },
 
     role: {

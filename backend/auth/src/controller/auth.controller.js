@@ -2,6 +2,7 @@ const User = require('../model/user.model')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const cookieParser = require('cookie-parser');
+const redisClient = require('../db/redis');
 
 const registerUser = async (req, res) => {
     try {

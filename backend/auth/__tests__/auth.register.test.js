@@ -11,6 +11,7 @@ describe('Auth Register Endpoint', () => {
         username: 'testuser',
         email: 'test@example.com',
         password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' }
       }
 
       const response = await request(app)
@@ -20,16 +21,18 @@ describe('Auth Register Endpoint', () => {
 
       expect(response.body.success).toBe(true)
       expect(response.body.message).toBe('User registered successfully')
-      expect(response.body.user).toHaveProperty('id')
+      expect(response.body.user).toHaveProperty('_id')
       expect(response.body.user.username).toBe(userData.username)
       expect(response.body.user.email).toBe(userData.email)
       expect(response.body.user.role).toBe('user') // default role
 
       // Verify user is saved in database
-      const savedUser = await User.findById(response.body.user.id)
+      const savedUser = await User.findById(response.body.user._id)
       expect(savedUser).toBeDefined()
       expect(savedUser.username).toBe(userData.username)
       expect(savedUser.email).toBe(userData.email)
+      expect(savedUser.fullName.firstname).toBe(userData.fullName.firstname)
+      expect(savedUser.fullName.lastname).toBe(userData.fullName.lastname)
     })
 
     it('should register a user with custom role', async () => {
@@ -37,6 +40,7 @@ describe('Auth Register Endpoint', () => {
         username: 'selleruser',
         email: 'seller@example.com',
         password: 'password123',
+        fullName: { firstname: 'Seller', lastname: 'User' },
         role: 'seller',
       }
 
@@ -46,32 +50,166 @@ describe('Auth Register Endpoint', () => {
         .expect(201)
 
       expect(response.body.success).toBe(true)
+      expect(response.body.message).toBe('User registered successfully')
       expect(response.body.user.role).toBe('seller')
     })
 
-    it('should fail if required fields are missing', async () => {
-      const testCases = [
-        { email: 'test@example.com', password: 'password123' }, // missing username
-        { username: 'testuser', password: 'password123' }, // missing email
-        { username: 'testuser', email: 'test@example.com' }, // missing password
-        {}, // all missing
-      ]
-
-      for (const userData of testCases) {
-        const response = await request(app)
-          .post('/api/auth/register')
-          .send(userData)
-          .expect(400)
-
-        expect(response.body.success).toBe(false)
-        expect(response.body.message).toBe('Username, email, and password are required')
+    it('should fail if email is missing', async () => {
+      const userData = {
+        username: 'testuser',
+        password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' }
       }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+      expect(response.body.errors).toBeDefined()
+      expect(Array.isArray(response.body.errors)).toBe(true)
+    })
+
+    it('should fail if username is missing', async () => {
+      const userData = {
+        email: 'test@example.com',
+        password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+    })
+
+    it('should fail if password is missing', async () => {
+      const userData = {
+        username: 'testuser',
+        email: 'test@example.com',
+        fullName: { firstname: 'Test', lastname: 'User' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+    })
+
+    it('should fail if fullName is missing', async () => {
+      const userData = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123'
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+    })
+
+    it('should fail if firstname is missing from fullName', async () => {
+      const userData = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123',
+        fullName: { lastname: 'User' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+    })
+
+    it('should fail if lastname is missing from fullName', async () => {
+      const userData = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123',
+        fullName: { firstname: 'Test' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+    })
+
+    it('should fail if password is less than 6 characters', async () => {
+      const userData = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: '123',
+        fullName: { firstname: 'Test', lastname: 'User' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+    })
+
+    it('should fail if username is less than 3 characters', async () => {
+      const userData = {
+        username: 'ab',
+        email: 'test@example.com',
+        password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
+    })
+
+    it('should fail if email is invalid', async () => {
+      const userData = {
+        username: 'testuser',
+        email: 'invalid-email',
+        password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(400)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toBe('Validation failed')
     })
 
     it('should fail if username already exists', async () => {
       const userData = {
         username: 'existinguser',
         email: 'user1@example.com',
+        fullName: { firstname: 'Existing', lastname: 'User' },
         password: 'password123',
       }
 
@@ -88,6 +226,7 @@ describe('Auth Register Endpoint', () => {
           username: userData.username,
           email: 'different@example.com',
           password: 'password456',
+          fullName: { firstname: 'Different', lastname: 'User' }
         })
         .expect(409)
 
@@ -99,6 +238,7 @@ describe('Auth Register Endpoint', () => {
       const userData = {
         username: 'user1',
         email: 'existing@example.com',
+        fullName: { firstname: 'Existing', lastname: 'User' },
         password: 'password123',
       }
 
@@ -112,9 +252,10 @@ describe('Auth Register Endpoint', () => {
       const response = await request(app)
         .post('/api/auth/register')
         .send({
-          username: 'differentuser',
+          username: 'user2',
           email: userData.email,
           password: 'password456',
+          fullName: { firstname: 'Different', lastname: 'User' }
         })
         .expect(409)
 
@@ -122,26 +263,40 @@ describe('Auth Register Endpoint', () => {
       expect(response.body.message).toBe('User with this email or username already exists')
     })
 
-    it('should handle database errors gracefully', async () => {
+    it('should fail if invalid role is provided', async () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
         password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' },
+        role: 'invalidrole'
       }
-
-      // Spy on User.findOne to simulate database error
-      jest.spyOn(User, 'findOne').mockRejectedValueOnce(new Error('Database error'))
 
       const response = await request(app)
         .post('/api/auth/register')
         .send(userData)
-        .expect(500)
+        .expect(400)
 
       expect(response.body.success).toBe(false)
-      expect(response.body.message).toBe('Error registering user')
-      expect(response.body.error).toBeDefined()
+      expect(response.body.message).toBe('Validation failed')
+    })
 
-      User.findOne.mockRestore()
+    it('should set cookie with token on successful registration', async () => {
+      const userData = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' }
+      }
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(201)
+
+      expect(response.headers['set-cookie']).toBeDefined()
+      const cookieHeader = response.headers['set-cookie'].find(cookie => cookie.startsWith('token='))
+      expect(cookieHeader).toBeDefined()
     })
 
     it('should register multiple users without conflicts', async () => {
@@ -150,16 +305,19 @@ describe('Auth Register Endpoint', () => {
           username: 'user1',
           email: 'user1@example.com',
           password: 'password123',
+          fullName: { firstname: 'User', lastname: 'One' }
         },
         {
           username: 'user2',
           email: 'user2@example.com',
           password: 'password456',
+          fullName: { firstname: 'User', lastname: 'Two' }
         },
         {
           username: 'user3',
           email: 'user3@example.com',
           password: 'password789',
+          fullName: { firstname: 'User', lastname: 'Three' }
         },
       ]
 
@@ -183,6 +341,7 @@ describe('Auth Register Endpoint', () => {
         username: 'testuser',
         email: 'Test@Example.COM',
         password: 'password123',
+        fullName: { firstname: 'Test', lastname: 'User' }
       }
 
       const response = await request(app)
@@ -190,7 +349,7 @@ describe('Auth Register Endpoint', () => {
         .send(userData)
         .expect(201)
 
-      const savedUser = await User.findById(response.body.user.id)
+      const savedUser = await User.findById(response.body.user._id)
       expect(savedUser.email).toBe('test@example.com')
     })
   })

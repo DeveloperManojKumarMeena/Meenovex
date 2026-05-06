@@ -3,16 +3,16 @@ const { MongoMemoryServer } = require('mongodb-memory-server')
 
 let mongoServer
 
+// Set environment variable for JWT_SECRET
+process.env.JWT_SECRET = 'test-secret-key-for-testing'
+
 beforeAll(async () => {
   // Start in-memory MongoDB
   mongoServer = await MongoMemoryServer.create()
   const mongoUri = mongoServer.getUri()
   
   // Connect Mongoose to the in-memory database
-  await mongoose.connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  await mongoose.connect(mongoUri)
 }, 60000) // Increased timeout to 60 seconds for MongoDB setup
 
 afterAll(async () => {

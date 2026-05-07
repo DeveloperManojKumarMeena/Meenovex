@@ -5,6 +5,18 @@ let mongoServer
 
 // Set environment variable for JWT_SECRET
 process.env.JWT_SECRET = 'test-secret-key-for-testing'
+process.env.REDIS_HOST = 'localhost'
+process.env.REDIS_PORT = 6379
+
+// Mock Redis for testing
+jest.mock('../src/db/redis', () => {
+  return {
+    set: jest.fn((key, value, ...args) => Promise.resolve('OK')),
+    get: jest.fn((key) => Promise.resolve(null)),
+    del: jest.fn((key) => Promise.resolve(1)),
+    on: jest.fn(),
+  }
+})
 
 beforeAll(async () => {
   // Start in-memory MongoDB

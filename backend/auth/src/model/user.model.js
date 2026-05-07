@@ -37,11 +37,11 @@ const userinfo = new mongoose.Schema({
         default: 'user'
     },
     address:[{
-        country: String,
-        state: String,
+        street: String,
         city: String,
+        state: String,
+        country: String,
         postalCode: String,
-        street: String
     }] 
 }, { timestamps: true })
 

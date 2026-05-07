@@ -1,5 +1,5 @@
 const express = require('express')
-const { registerUser, loginUser, resetPassword, logoutUser, GetAddress,addAddress } = require('../controller/auth.controller')
+const { registerUser, loginUser, resetPassword, logoutUser, GetAddress,addAddress, deleteAddress } = require('../controller/auth.controller')
 const validator = require('../middleware/validator.middleware');
 const { authUser } = require('../middleware/auth.middleware');
 

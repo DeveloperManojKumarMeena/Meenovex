@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const cookieParser = require('cookie-parser');
 const redisClient = require('../db/redis');
+const { default: mongoose } = require('mongoose');
 
 const registerUser = async (req, res) => {
     try {
@@ -20,8 +21,8 @@ const registerUser = async (req, res) => {
         const newUser = await User.create({
             username,
             fullName: {
-               firstname: fullName.firstname,
-               lastname: fullName.lastname
+                firstname: fullName.firstname,
+                lastname: fullName.lastname
             },
             email,
             password: hashedPassword,
@@ -30,7 +31,7 @@ const registerUser = async (req, res) => {
 
         const token = jwt.sign({ _id: newUser._id, email, username }, process.env.JWT_SECRET);
 
-        res.cookie('token', token , { httpOnly: true,   maxage: 24 * 60 * 60 * 1000 });
+        res.cookie('token', token, { httpOnly: true, maxage: 24 * 60 * 60 * 1000 });
 
         res.status(201).json({ success: true, message: 'User registered successfully', user: newUser });
     } catch (error) {
@@ -56,7 +57,7 @@ const loginUser = async (req, res) => {
 
         const token = jwt.sign({ _id: user._id, email: user.email, username: user.username }, process.env.JWT_SECRET);
 
-        res.cookie('token', token, { httpOnly: true,secure: true,maxage: 24 * 60 * 60 * 1000 });
+        res.cookie('token', token, { httpOnly: true, secure: true, maxage: 24 * 60 * 60 * 1000 });
 
         res.status(200).json({ message: 'Login successful', user });
 
@@ -92,64 +93,91 @@ const logoutUser = async (req, res) => {
     try {
         const token = req.cookies.token;
 
-        if(token){
+        if (token) {
             // Add token to Redis blacklist
             await redisClient.set(token, 'blacklisted', 'EX', 24 * 60 * 60); // Set expiration to 24 hours
         }
-        res.clearCookie('token',{
+        res.clearCookie('token', {
             httpOnly: true,
             secure: true
         });
-        res.status(200).json({status: 'success', message: 'Logout successful' });
+        res.status(200).json({ status: 'success', message: 'Logout successful' });
     } catch (error) {
         console.error('Error in logoutUser:', error);
         res.status(500).json({ message: 'Server error' });
     }
 }
 
-const GetAddress = async(req,res)=>{
+const GetAddress = async (req, res) => {
     try {
         const user = req.user
         const userinfo = await User.findById(user._id)
 
-        if(userinfo.address.length===0){
-           
-           return res.status(404).json({
-                Message:"You not have any address in yours profile so please add address first and fetch it again...",
+        if (userinfo.address.length === 0) {
+
+            return res.status(404).json({
+                Message: "You not have any address in yours profile so please add address first and fetch it again...",
             })
         }
 
         res.status(201).json({
-            Message:"Address fetch successfully",
+            Message: "Address fetch successfully",
             Address: userinfo.address
         })
     } catch (error) {
-        console.log('some error from GetAddress => '+error)
+        console.log('some error from GetAddress => ' + error)
         res.status(500).json({ message: 'GetAddress server fail' });
     }
 }
 
-const addAddress = async(req,res)=>{
+const addAddress = async (req, res) => {
     try {
         const userAddress = req.body.address;
         console.log(req.body.address);
         const user = req.user;
         const userinfo = await User.findById(user._id);
 
-        const updatedUser = await User.findByIdAndUpdate(user._id,{ $push: { address: userAddress } },{returnDocument: 'after'});
+        const updatedUser = await User.findByIdAndUpdate(user._id, { $push: { address: userAddress } }, { returnDocument: 'after' });
 
 
         res.status(201).json({
-            Message:"Address added successfully",
+            Message: "Address added successfully",
             Address: updatedUser.address
         })
     } catch (error) {
-        console.log('some error from addAddress => '+error)
+        console.log('some error from addAddress => ' + error)
         res.status(500).json({ message: 'addAddress server fail' });
     }
 }
 
+const deleteAddress = async (req, res) => {
+    try {
+        const userid = req.user;
+        
 
+        const addressId = req.params.id;
+       
+        console.log('addressId => ' + addressId);
+
+        // Pull the address with the specified ID from the user's address array
+        const updatedUser = await User.findByIdAndUpdate({_id: userid._id},
+            { $pull: { address: { _id: addressId } } },
+            {  returnDocument: 'after' }
+        );  
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                Message: "User not found",
+            })
+        }   
+        res.status(200).json({
+            Message: "Address deleted successfully",
+        })
+    } catch (error) {
+        console.log('some error from deleteAddress => ' + error)
+        res.status(500).json({ message: 'deleteAddress server fail' });
+    }
+}
 
 module.exports = {
     registerUser,
@@ -157,5 +185,6 @@ module.exports = {
     resetPassword,
     logoutUser,
     GetAddress,
-    addAddress
+    addAddress,
+    deleteAddress
 }

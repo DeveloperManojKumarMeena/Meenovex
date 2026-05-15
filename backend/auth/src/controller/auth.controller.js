@@ -29,7 +29,7 @@ const registerUser = async (req, res) => {
             role: role || 'user'
         });
 
-        const token = jwt.sign({ _id: newUser._id, email, username }, process.env.JWT_SECRET);
+        const token = jwt.sign({ _id: newUser._id, email, username , role: newUser.role }, process.env.JWT_SECRET);
 
         res.cookie('token', token, { httpOnly: true, maxage: 24 * 60 * 60 * 1000 });
 
@@ -55,7 +55,7 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ message: 'Invalid Password' });
         }
 
-        const token = jwt.sign({ _id: user._id, email: user.email, username: user.username }, process.env.JWT_SECRET);
+        const token = jwt.sign({ _id: user._id, email: user.email, username: user.username, role: user.role }, process.env.JWT_SECRET);
 
         res.cookie('token', token, { httpOnly: true, secure: true, maxage: 24 * 60 * 60 * 1000 });
 
@@ -133,7 +133,7 @@ const GetAddress = async (req, res) => {
 const addAddress = async (req, res) => {
     try {
         const userAddress = req.body.address;
-        console.log(req.body.address);
+
         const user = req.user;
         const userinfo = await User.findById(user._id);
 

@@ -109,7 +109,76 @@ const getProducts = async (req, res) => {
     }
 };
 
+const getProductById = async (req, res) => {
+    try {
+        const productId = req.params.id;
+
+        const product = await ProductModel.findById(productId);
+
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+
+        res.json({ product });
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        res.status(500).json({ error: 'Failed to fetch product' });
+    }
+};
+
+const updateProduct = async (req, res) => {
+    // Implementation for updating a product
+    const productId = req.params.id;
+    const body = req.body;
+    const imageFile = req.file;
+    try {        const product = await ProductModel.findById(productId);
+
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+        if (product.seller.toString() !== req.seller._id.toString()) {
+            return res.status(403).json({ error: 'Forbidden. You can only update your own products.' });
+        }   
+        if (imageFile) {
+            const imageUrl = await uploadImage(imageFile);
+            product.images = {
+                url: imageUrl.url,
+                thumbnailUrl: imageUrl.thumbnailUrl
+            };
+        }
+        Object.assign(product, body);
+        await product.save();
+        res.json({ message: 'Product updated successfully', product });
+    } catch (error) {
+        console.error('Error updating product:', error);
+        res.status(500).json({ error: 'Failed to update product' });
+    }
+};
+
+const deleteProduct = async (req, res) => {
+    const productId = req.params.id;
+    try {
+        const product = await ProductModel.findById(productId);
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+        if (product.seller.toString() !== req.seller._id.toString()) {
+            return res.status(403).json({ error: 'Forbidden. You can only delete your own products.' });
+        }
+        await product.remove();
+        res.json({ message: 'Product deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        res.status(500).json({ error: 'Failed to delete product' });
+    }
+};
+
 module.exports = {
     createProduct,
     getProducts,
+    getProductById,
+    updateProduct,
+    deleteProduct,
+    updateProduct,
+    getProductById
 };
